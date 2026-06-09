@@ -1,0 +1,12 @@
+find-your-kill-zone
+Copyright 2026 Black Box Research Labs
+
+This product includes software developed by Black Box Research Labs.
+
+"AIV", "Set A", "Set B", "kill zone", and "Black Box Research Labs" are
+identifiers used by Black Box Research Labs.
+
+This tool orchestrates third-party open-source analyzers that are fetched at
+container-build time (not bundled in this source distribution). Their licenses
+are enumerated in THIRD-PARTY-NOTICES.md. Building or distributing the resulting
+container image is subject to those upstream licenses.

@@ -1,0 +1,58 @@
+services:
+  audit-env:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile
+    # Standalone image tag.
+    image: find-your-kill-zone
+
+    # THE LEGAL GUARANTEE — the air gap is load-bearing.
+    # No packets in, no packets out. Hardcoded, non-overridable.
+    network_mode: "none"
+
+    volumes:
+      # 1. The per-run client workspace.
+      #    run.sh copies the target repo into a /tmp workspace and mounts it
+      #    here with an explicit `-v "$WORKSPACE:/workspace"` on the
+      #    `docker compose run` invocation (Docker last-write-wins). This YAML
+      #    entry declares the build-time mount point; the runtime override owns
+      #    per-run isolation.
+      - /tmp/find-your-kill-zone-workspace:/workspace
+
+      # 2. The Engine (mounted read-only from this repo).
+      #    Resolves to /opt/engine/cli.ts inside the container.
+      - ../engine:/opt/engine:ro
+
+      # 3. Custom Semgrep rules. engine/analyzers/python.ts expects
+      #    /opt/semgrep-rules-custom/semgrep-rules-py.yml. Mounting the whole
+      #    infrastructure/ dir keeps the path stable.
+      - ../infrastructure:/opt/semgrep-rules-custom:ro
+
+      # The engine's npm deps (commander + ts-node + typescript) and tsconfig are
+      # BAKED INTO THE IMAGE at build time (Dockerfile COPYs package.json +
+      # tsconfig.json and runs `npm install --omit=dev` into /opt/node_modules),
+      # so the engine boots air-gapped with no host-side node_modules. The two
+      # internal source files the engine consumes are vendored under
+      # engine/vendored/, so no host source tree is mounted.
+
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    # Prevent writing root-owned files back to the host (Linux specific).
+    user: "${UID:-1000}:${GID:-1000}"
+
+    working_dir: /tmp
+
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+
+    environment:
+      - DOCKER_MANDATE=true
+      - NODE_ENV=production
+      - HOME=/tmp
+      - XDG_CACHE_HOME=/tmp/.cache
+      - XDG_CONFIG_HOME=/tmp/.config

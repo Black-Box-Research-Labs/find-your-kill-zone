@@ -1,0 +1,24 @@
+{
+  "//": "FIX-1: self-contained engine tsconfig. The monorepo root tsconfig extended `astro/tsconfigs/strict` — an Astro dependency the standalone breadth engine must not carry. This mirrors the engine's runtime contract: ESM modules, NodeNext resolution (so `./x.js` specifiers resolve to `.ts` source under ts-node), and transpile-only (TS_NODE_TRANSPILE_ONLY=1 is also set on the invocation — type errors never block the air-gapped run).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "esm": true
+  },
+  "include": ["engine/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,36 @@
+# find-your-kill-zone — .gitignore
+# This repo ships SOURCE (engine + infra + run.sh + the agent front door).
+# It must NOT ship runtime artifacts, sample analysis output, or dependency
+# trees. Two of those (sample output, the .validation oracle dump) are also
+# third-party analysis findings — keep them out of git.
+
+# ── Node / build deps (FIX-1: installed INTO the image at build time, never committed)
+node_modules/
+*.tsbuildinfo
+dist/
+build/
+
+# ── Runtime + sample analysis output (NEVER commit — it is third-party repo
+#    findings; the engine writes these next to the run)
+output/
+*.analysis.json
+*.interrogate.json
+*.local.analysis.extended.*.json
+
+# ── WORM ledger (per-run provenance; not source)
+analysis_ledger.log
+*.ledger.log
+
+# ── Internal build provenance / validation scratch (unshipped)
+.validation/
+*.bug-catalog.md
+
+# ── Local /tmp workspaces, clones
+/tmp/
+*.tmp
+
+# ── OS / editor noise
+.DS_Store
+*.swp
+.idea/
+.vscode/

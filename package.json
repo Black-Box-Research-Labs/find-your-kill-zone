@@ -1,0 +1,21 @@
+{
+  "name": "find-your-kill-zone",
+  "version": "0.1.0",
+  "description": "Air-gapped breadth engine — the literal Act II stage analyzers + kill-zone synthesis, extracted from the black-box monorepo. The AIV provenance pipeline is the moat; the breadth is the gift.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "engine": "node --loader ts-node/esm engine/cli.ts"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

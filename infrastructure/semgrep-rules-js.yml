@@ -1,0 +1,50 @@
+rules:
+- id: js.dangerous.eval
+  languages: [javascript, typescript]
+  message: Avoid eval(); it enables code injection.
+  severity: WARNING
+  pattern: eval(...)
+
+- id: node.child_process.exec
+  languages: [javascript, typescript]
+  message: Avoid child_process exec/spawn without strict sanitization.
+  severity: WARNING
+  pattern-either:
+    - pattern: require('child_process').exec(...)
+    - pattern: require("child_process").exec(...)
+    - pattern: child_process.exec(...)
+    - pattern: child_process.execSync(...)
+    - pattern: child_process.spawn(...)
+    - pattern: child_process.spawnSync(...)
+    - pattern: require('child_process').spawn(...)
+    - pattern: require("child_process").spawn(...)
+
+- id: js.insecure.http.url
+  languages: [javascript, typescript]
+  message: Insecure HTTP URL detected; prefer HTTPS.
+  severity: WARNING
+  pattern-either:
+    - pattern: fetch("http://...")
+    - pattern: fetch('http://...')
+    - pattern: axios("http://...")
+    - pattern: axios('http://...')
+    - pattern: axios.get("http://...")
+    - pattern: axios.get('http://...')
+    - pattern: axios.post("http://...")
+    - pattern: axios.post('http://...')
+
+- id: node.crypto.weak.hash
+  languages: [javascript, typescript]
+  message: Weak hash algorithm (MD5/SHA1) detected.
+  severity: WARNING
+  pattern-either:
+    - pattern: crypto.createHash('md5')
+    - pattern: crypto.createHash("md5")
+    - pattern: crypto.createHash('sha1')
+    - pattern: crypto.createHash("sha1")
+
+- id: js.jwt.decode.without.verify
+  languages: [javascript, typescript]
+  message: jwt.decode used; ensure tokens are verified with jwt.verify.
+  severity: WARNING
+  pattern: jwt.decode(...)

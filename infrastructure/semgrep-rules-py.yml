@@ -1,0 +1,51 @@
+rules:
+  - id: py-fastapi-local-file-write
+    patterns:
+      - pattern-inside: |
+          @$APP.$METHOD(...)
+          def $FUNC(...):
+            ...
+      - pattern-either:
+          - pattern: open(..., "w")
+          - pattern: open(..., "wb")
+          - pattern: open(..., "a")
+          - pattern: open(..., "ab")
+          - pattern: open(..., "w+")
+          - pattern: json.dump(..., open(...))
+    message: |
+      Local file write detected inside a FastAPI route handler.
+      In serverless environments (Cloud Run, AWS Lambda) or containerized deployments,
+      the local filesystem is ephemeral. Data written here will be lost when the container restarts.
+      Use a managed database, cloud storage (S3/GCS), or an external cache (Redis).
+    languages:
+      - python
+    severity: WARNING
+    # PR-FORENSIC-FIX Issue #15: `category:` is not a valid top-level rule field
+    # per semgrep schema. Belongs under `metadata:`. Pre-fix semgrep emitted
+    # "invalid configuration file found (1 configs were invalid)" and dropped
+    # both custom rules silently.
+    metadata:
+      category: architecture
+
+  - id: py-sqlite-relative-path
+    patterns:
+      - pattern-either:
+          - pattern: sqlite3.connect("$PATH")
+          - pattern: |
+              $PATH = "..."
+              ...
+              sqlite3.connect($PATH)
+      - metavariable-pattern:
+          metavariable: $PATH
+          patterns:
+            - pattern-not-regex: "^(/|sqlite://|file:|:memory:)"
+    message: |
+      SQLite connection uses a relative path ($PATH).
+      In production or containerized environments, the working directory may not be predictable,
+      and SQLite files on ephemeral filesystems will be lost on restart.
+      Use absolute paths mapping to persistent volumes, or migrate to a managed database (PostgreSQL/Cloud SQL).
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      category: architecture
