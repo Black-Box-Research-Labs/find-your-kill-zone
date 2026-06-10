@@ -87,7 +87,7 @@ you exactly why.
 ## After you run it
 
 The kill zone tells you *where to look by hand* — the highest-leverage files to put human eyes
-on. It does **not** tell you a finding is real; that's the human Set-A trace work, deliberately
+on. It does **not** tell you a finding is real; that's the human trace work, deliberately
 not in this tool.
 
 - **Useful? Missed something?** → there's **one pinned issue**. A 👍, or a one-line "my stack is
@@ -95,7 +95,7 @@ not in this tool.
   telemetry — this repo phones home to nobody (grep it).
 - **Want humans to actually trace your kill zone** — verified findings with buyer-checkable
   provenance (the AIV protocol), not just "here's where to look"? → that's what we do:
-  **hello@blackboxresearchlabs.com**
+  **blackboxresearchlabs.com**
 
 *The breadth is the gift. The human depth is the work. Run the breadth on Monday; talk to us
 when the breadth scares you.*
