@@ -112,7 +112,6 @@ find-your-kill-zone/
   run.sh                   thin air-gapped single-repo runner (+ `--verify` for the WORM ledger)
   SELF-AUDIT.md            what this tool says about its own code
   VALIDATION_REPORT.md     proof the engine == our stage engine (frozen-oracle gate)
-  SAFETY_REPORT.md         the adversarial safety panel that gated this repo
   LICENSE · NOTICE · THIRD-PARTY-NOTICES.md
   README.md                this file
 ```
