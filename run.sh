@@ -77,14 +77,17 @@ _verify_ledger() {
   if [ ! -f "$file" ]; then echo "[verify] no ledger at $file — nothing to verify." >&2; return 0; fi
   while IFS= read -r line; do
     n=$((n + 1)); [ -z "$line" ] && continue
-    sha="$(printf '%s' "$line"     | sed -E -n 's/.* sha=([0-9a-fA-F]{64}).*/\1/p')"
-    prev="$(printf '%s' "$line"    | sed -E -n 's/.* prev=([0-9a-fA-F]{64}|0).*/\1/p')"
-    ts="$(printf '%s' "$line"      | sed -E -n 's/^\[([^]]+)\].*/\1/p')"
-    event="$(printf '%s' "$line"   | sed -E -n 's/^\[[^]]+\] ([A-Z0-9_]*):.*/\1/p')"
-    details="$(printf '%s' "$line" | sed -E -n 's/^\[[^]]+\] [A-Z0-9_]*: (.*) os=.*/\1/p')"
-    os="$(printf '%s' "$line"      | sed -E -n 's/.* os=([^ ]*).*/\1/p')"
+    # fmt-2: fields are positionally pinned from ^, and `details` is the trailing
+    # field (space-encoded at write time), so a crafted details value cannot inject
+    # an in-band ' os='/' prev='/' sha=' marker that a greedy parser would mis-split.
+    ts="$(printf '%s' "$line"      | sed -E -n 's/^\[([^]]+)\] sha=.*/\1/p')"
+    sha="$(printf '%s' "$line"     | sed -E -n 's/^\[[^]]+\] sha=([0-9a-fA-F]{64}) .*/\1/p')"
+    prev="$(printf '%s' "$line"    | sed -E -n 's/^\[[^]]+\] sha=[0-9a-fA-F]{64} prev=([0-9a-fA-F]{64}|0) .*/\1/p')"
+    os="$(printf '%s' "$line"      | sed -E -n 's/^\[[^]]+\] sha=[0-9a-fA-F]{64} prev=([0-9a-fA-F]{64}|0) os=([^ ]+) .*/\2/p')"
+    event="$(printf '%s' "$line"   | sed -E -n 's/^\[[^]]+\] sha=[0-9a-fA-F]{64} prev=([0-9a-fA-F]{64}|0) os=[^ ]+ ([A-Z0-9_]+): .*/\2/p')"
+    details="$(printf '%s' "$line" | sed -E -n 's/^\[[^]]+\] sha=[0-9a-fA-F]{64} prev=([0-9a-fA-F]{64}|0) os=[^ ]+ [A-Z0-9_]+: (.*)$/\2/p')"
     if [ -z "$sha" ] || [ -z "$prev" ] || [ -z "$ts" ] || [ -z "$event" ] || [ -z "$details" ] || [ -z "$os" ]; then
-      echo "[verify] ❌ line $n malformed — cannot verify chain. FAIL." >&2; return 1
+      echo "[verify] ❌ line $n malformed (expected ledger fmt-2: '[ts] sha= prev= os= EVENT: details'). A fmt-1 ledger predates this fix and cannot be upgraded in place; re-initialize. FAIL." >&2; return 1
     fi
     if [ "$prev" != "$expected_prev" ]; then
       echo "[verify] ❌ line $n chain break: expected prev=$expected_prev, got prev=$prev. FAIL." >&2; return 1
@@ -95,7 +98,7 @@ _verify_ledger() {
     fi
     expected_prev="$sha"
   done < "$file"
-  echo "[verify] ✓ WORM ledger intact: $n entries chain-verified ($file)" >&2
+  echo "[verify] ✓ chain intact: $n entries ($file). Integrity only: the chain is unkeyed, so intact does not prove authentic. Authenticity = re-run the repo @SHA for an identical analysis_sha (or verify a signature once signing lands)." >&2
   return 0
 }
 
@@ -285,12 +288,17 @@ if [ "$LEDGER" = "true" ]; then
 
   TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   EVENT="ANALYSIS_COMPLETED"
-  OS="$(uname -s)"
+  OS="$(uname -s)"; OS="${OS// /_}"   # os is one positional token (no spaces)
   SUMMARY_SHA="$(_sha_file "$SUMMARY_HOST")"; [ -z "$SUMMARY_SHA" ] && SUMMARY_SHA="unavailable"
   ANALYSIS_SHA="$(_sha_file "$ANALYSIS_HOST")"; [ -z "$ANALYSIS_SHA" ] && ANALYSIS_SHA="unavailable"
   DETAILS="target=$TARGET_NAME since=$SINCE summary=$(basename "$SUMMARY_HOST") summary_sha=$SUMMARY_SHA analysis_sha=$ANALYSIS_SHA"
+  # fmt-2: details is the trailing field, so keep it single-line and space-free.
+  # Space-encoding (%20) guarantees it can never contain an in-band ' os='/' prev='/
+  # ' sha=' field marker, which is what let a greedy verifier mis-split fmt-1 lines.
+  DETAILS="${DETAILS//$'\n'/ }"; DETAILS="${DETAILS//$'\r'/ }"; DETAILS="${DETAILS// /%20}"
 
-  PREV_HASH="$(tail -n 1 "$LEDGER_FILE" 2>/dev/null | sed -E -n 's/.* sha=([0-9a-fA-F]{64}).*/\1/p')"
+  # head sha, anchored (fmt-2 puts sha= immediately after the timestamp)
+  PREV_HASH="$(tail -n 1 "$LEDGER_FILE" 2>/dev/null | sed -E -n 's/^\[[^]]+\] sha=([0-9a-fA-F]{64}) .*/\1/p')"
   [ -z "$PREV_HASH" ] && PREV_HASH="0"
   CHAIN_INPUT="$PREV_HASH|$TIMESTAMP|$EVENT|$OS|$DETAILS"
   NEW_HASH="$(_sha_str "$CHAIN_INPUT")"
@@ -298,6 +306,7 @@ if [ "$LEDGER" = "true" ]; then
     echo "[error] no SHA-256 tool available — cannot append WORM ledger entry." >&2
     exit 1
   fi
-  echo "[$TIMESTAMP] $EVENT: $DETAILS os=$OS prev=$PREV_HASH sha=$NEW_HASH" >> "$LEDGER_FILE"
+  # fmt-2 line: structured fields first (positionally pinned), free-text details last.
+  echo "[$TIMESTAMP] sha=$NEW_HASH prev=$PREV_HASH os=$OS $EVENT: $DETAILS" >> "$LEDGER_FILE"
   echo "[ledger] appended: $LEDGER_FILE (head sha=${NEW_HASH:0:12})" >&2
 fi
