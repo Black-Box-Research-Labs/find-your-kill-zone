@@ -62,10 +62,17 @@ the analysis container still runs with no network). Flags: `--since "<window>"`
 
 ## What it proves — and what it does not
 
-**Proves:** the breadth sweep **ran** and is **reproducible** — same repo + same `@SHA` + same
-window ⇒ same kill zone, and the `--ledger` chain lets a third party re-verify it without
-trusting us: run `./run.sh --verify output/analysis_ledger.log` — it re-derives every entry's
-hash and checks the chain, failing loudly (`HASH MISMATCH`, exit 1) on any tampered line.
+**Proves:** the breadth sweep **ran** and is **reproducible**. Same repo + same `@SHA` + same
+window ⇒ same kill zone, so the trust anchor is re-execution: a third party re-runs the sweep and
+gets an identical `analysis_sha`, without trusting us. The `--ledger` chain adds tamper-evidence
+on top: `./run.sh --verify output/analysis_ledger.log` re-derives every entry's hash and checks
+the linkage, failing loudly (`HASH MISMATCH`, exit 1) on any edited line.
+
+Be precise about what `--verify` does and does not give you. The chain is an **unkeyed** SHA-256
+hash chain, so it proves **integrity** (no line was altered in isolation), not **authenticity**
+(that we, and only we, produced it): anyone who edits a line can recompute every subsequent hash.
+Authenticity comes from re-execution today, and from an optional signature once signing lands. Do
+not treat a green `--verify`, on its own, as proof of provenance.
 
 **Does not prove:** that any nominated file contains a real bug. The kill zone is *where to
 look by hand* — the machine's nomination. Turning a kill-zone file into a confirmed finding is
